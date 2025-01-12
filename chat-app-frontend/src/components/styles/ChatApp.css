@@ -1,0 +1,46 @@
+/* chatApp.css */
+.chat-app-container {
+    max-width: 600px;
+    margin: 50px auto;
+    padding: 30px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    text-align: center;
+    background-color: #f9f9f9;
+}
+
+.chat-app-heading {
+    margin-bottom: 20px;
+    font-size: 24px;
+    color: #333;
+}
+
+.chat-app-description {
+    font-size: 16px;
+    color: #666;
+}
+
+.chat-app-interface {
+    margin-top: 30px;
+    padding: 15px;
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+.chat-app-interface p {
+    font-size: 14px;
+    color: #333;
+}
+
+.chat-app-interface .message {
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #e0f7fa;
+    border-radius: 4px;
+    color: #00796b;
+}
+
+.chat-app-interface .message-user {
+    font-weight: bold;
+}
