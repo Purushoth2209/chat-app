@@ -1,20 +1,21 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import LoginPage from "./components/LoginPage";
-import SignupPage from "./components/SignupPage";
-import ChatApp from "./components/ChatApp";
-import PrivateRoute from "./components/PrivateRoute"; // Import the PrivateRoute component
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Login from './components/Login';
+import Signup from './components/Signup';
+import Chat from './components/Chat';
+import './App.css';
 
 const App = () => {
   return (
     <Router>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-        {/* Use PrivateRoute to protect the /chat route */}
-        <Route path="/chat" element={<PrivateRoute component={ChatApp} />} />
-        <Route path="/" element={<LoginPage />} />
-      </Routes>
+      <div className="app-container">
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/" element={<Login />} />
+        </Routes>
+      </div>
     </Router>
   );
 };

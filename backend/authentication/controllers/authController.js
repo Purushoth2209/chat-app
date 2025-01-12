@@ -4,10 +4,9 @@ const User = require('../models/User');
 
 // Register a new user
 exports.registerUser = async (req, res) => {
-    const { phoneNumber, password } = req.body;
-
-    if (!phoneNumber || !password) {
-        return res.status(400).json({ message: 'Phone number and password are required' });
+    const { phoneNumber, password, username } = req.body;
+    if (!phoneNumber || !password || !username) {
+        return res.status(400).json({ message: 'Phone number, username, and password are required' });
     }
 
     try {
@@ -27,16 +26,17 @@ exports.registerUser = async (req, res) => {
         const user = new User({
             phoneNumber,
             password: hashedPassword,
-            profileId
+            profileId,
+            username
         });
 
         // Save user to the database
         await user.save();
 
         // Generate JWT token
-        const token = jwt.sign({ profileId: user.profileId, phoneNumber: user.phoneNumber }, 'your_jwt_secret', { expiresIn: '1h' });
+        const token = jwt.sign({ profileId: user.profileId, phoneNumber: user.phoneNumber, username: user.username }, 'your_jwt_secret', { expiresIn: '1h' });
 
-        res.status(201).json({ token, profileId: user.profileId, message: 'Registration successful' });
+        res.status(201).json({ token, profileId: user.profileId, username: user.username, message: 'Registration successful' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
@@ -64,9 +64,9 @@ exports.loginUser = async (req, res) => {
         }
 
         // Generate JWT token
-        const token = jwt.sign({ profileId: user.profileId, phoneNumber: user.phoneNumber }, 'your_jwt_secret', { expiresIn: '1h' });
-
-        res.status(200).json({ token, profileId: user.profileId, message: 'Login successful' });
+        const token = jwt.sign({ profileId: user.profileId, phoneNumber: user.phoneNumber, username: user.username }, 'your_jwt_secret', { expiresIn: '1h' });
+        console.log('Sending response:', { message: 'Login successful', token: token });
+        res.status(200).json({ token, profileId: user.profileId, username: user.username, message: 'Login successful' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
