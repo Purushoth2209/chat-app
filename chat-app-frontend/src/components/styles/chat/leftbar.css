@@ -1,0 +1,145 @@
+/* Left sidebar (contact list) */
+.leftbar {
+    background-color: #f4f4f4;
+    width: 300px;
+    border-right: 1px solid #ddd;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Title for contacts */
+.contacts-title {
+    color: #004d91;
+    font-weight: bold;
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+}
+
+/* Search bar */
+.search-bar {
+    padding: 10px;
+    border-radius: 25px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    font-size: 0.9rem;
+    transition: border-color 0.3s ease;
+}
+
+.search-bar:focus {
+    border-color: #004d91;
+    outline: none;
+}
+
+/* Contact list styling */
+.contacts-list {
+    padding-left: 0;
+    margin: 0;
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+/* Contact item (each contact) */
+.contact-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 10px;
+    transition: background-color 0.3s ease;
+}
+
+.contact-item:hover {
+    background-color: #e1e1e1;
+}
+
+/* Contact info styling */
+.contact-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-grow: 1;
+}
+
+.add-btn {
+    background-color: #004d91;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background-color 0.3s ease;
+}
+
+.add-btn:hover {
+    background-color: #003366;
+}
+
+.no-results {
+    color: #888;
+    text-align: center;
+}
+/* Add new contact button */
+.add-contact-btn {
+    margin-top: 20px;
+    width: 100%;
+    border-radius: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.search-bar {
+    margin-bottom: 20px;
+    border-radius: 20px;
+}
+
+.contacts-title {
+    color: #004d91;
+    font-weight: bold;
+}
+
+.contacts-list {
+    padding-left: 0;
+}
+
+.contact-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.contact-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.add-btn {
+    border-radius: 20px;
+}
+
+.no-results {
+    color: #888;
+}
+
+/* Modal Styling */
+.modal-content {
+    border-radius: 20px;
+}
+
+.modal-header {
+    background-color: #004d91;
+    color: white;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: space-between;
+}
+
+.text-danger {
+    color: red;
+}

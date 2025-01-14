@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Login from './components/Login';
 import Signup from './components/Signup';
-import Chat from './components/Chat';
+import Chat from './components/chat/Chat';
 import './App.css';
 
 const App = () => {
