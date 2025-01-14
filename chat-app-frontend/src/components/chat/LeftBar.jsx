@@ -1,13 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { ListGroup, Form, Button, Modal } from 'react-bootstrap';
 import axios from 'axios';
-import '../styles/chat/leftbar.css';  // Importing the LeftBar CSS
+import '../styles/chat/leftbar.css'; // Importing custom CSS for styling
 
 function LeftBar({ searchQuery, setSearchQuery, setContactSearchResults, contactSearchResults, setContacts, setCurrentContact, profileId }) {
   const [newContactModal, setNewContactModal] = useState(false);
   const [newContactName, setNewContactName] = useState('');
   const [newContactNumber, setNewContactNumber] = useState('');
   const [error, setError] = useState('');
+  const [contacts, setContactsState] = useState([]);
+
+  // Fetch contacts from backend
+  const fetchContacts = async () => {
+    try {
+      const profileId = localStorage.getItem('profileId'); // Retrieve profileId
+      if (!profileId) {
+        console.error('profileId is not found in local storage');
+        return;
+      }
+      const response = await axios.get(`http://localhost:5000/api/auth/fetchContact?profileId=${profileId}`);
+      if (response.status === 200) {
+        setContactsState(response.data.contacts);
+        setContactSearchResults(response.data.contacts); // Initialize search results with fetched contacts
+      }
+    } catch (error) {
+      console.error('Error fetching contacts:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchContacts(); // Fetch contacts on component mount
+  }, []);
 
   // Handle search input changes
   const handleSearchChange = (e) => {
@@ -17,7 +40,7 @@ function LeftBar({ searchQuery, setSearchQuery, setContactSearchResults, contact
 
   // Filter contacts based on the search query
   const searchContacts = (query) => {
-    const filteredContacts = contactSearchResults.filter((contact) =>
+    const filteredContacts = contacts.filter((contact) =>
       contact.username.toLowerCase().includes(query.toLowerCase()) ||
       contact.phoneNumber.includes(query)
     );
@@ -27,11 +50,6 @@ function LeftBar({ searchQuery, setSearchQuery, setContactSearchResults, contact
   // Handle selecting a contact from the list
   const handleSelectContact = (contact) => {
     setCurrentContact(contact);
-  };
-
-  // Handle adding a new contact
-  const handleAddContact = (contact) => {
-    setContacts((prevContacts) => [...prevContacts, contact]);
   };
 
   // Show the modal for creating a new contact
@@ -81,11 +99,8 @@ function LeftBar({ searchQuery, setSearchQuery, setContactSearchResults, contact
         );
 
         if (addContactResponse.status === 200) {
-          setContacts((prevContacts) => [
-            ...prevContacts,
-            { username: newContactName, phoneNumber: newContactNumber, profileId: contactProfileId },
-          ]);
           handleCloseModal();
+          fetchContacts(); // Re-fetch the updated contact list
         } else {
           setError(addContactResponse.data.message);
         }
@@ -112,36 +127,30 @@ function LeftBar({ searchQuery, setSearchQuery, setContactSearchResults, contact
       />
 
       {/* Add new contact button */}
-      <Button variant="outline-primary" onClick={handleShowModal} className="add-contact-btn">
+      <Button variant="outline-primary" onClick={handleShowModal} className="add-contact-btn mb-3">
         <i className="bi bi-plus"></i> Add Contact
       </Button>
 
       {/* Contact list */}
-      <ListGroup className="contacts-list">
+      <ListGroup className="contacts-list list-group-flush">
         {contactSearchResults.length > 0 ? (
           contactSearchResults.map((contact) => (
             <ListGroup.Item
               key={contact.profileId}
               action
               onClick={() => handleSelectContact(contact)}
-              className="contact-item"
+              className="contact-item d-flex justify-content-between align-items-center py-2"
             >
-              <div className="contact-info">
-                <span>{contact.username}</span>
-                {/* Add contact button inside the ListGroup item */}
-                <Button
-                  size="sm"
-                  variant="outline-primary"
-                  onClick={() => handleAddContact(contact)}
-                  className="add-btn"
-                >
-                  Add
-                </Button>
+              <div>
+                <span className="font-weight-bold">{contact.username}</span>
+                <br />
+                <span className="text-muted small">{contact.phoneNumber}</span>
               </div>
+              <i className="bi bi-chat-dots text-primary"></i>
             </ListGroup.Item>
           ))
         ) : (
-          <p className="no-results">No results</p>
+          <p className="text-muted text-center">No results</p>
         )}
       </ListGroup>
 

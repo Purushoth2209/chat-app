@@ -143,3 +143,35 @@
 .text-danger {
     color: red;
 }
+.leftbar-container {
+    padding: 20px;
+    border-right: 1px solid #ddd;
+    max-height: 100vh;
+    overflow-y: auto;
+}
+
+.contacts-title {
+    margin-bottom: 15px;
+}
+
+.search-bar {
+    margin-bottom: 15px;
+    border-radius: 8px;
+}
+
+.contacts-list {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+.contact-item {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    padding: 10px;
+}
+
+.contact-item:hover {
+    background-color: #f8f9fa;
+}

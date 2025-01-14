@@ -3,6 +3,7 @@ const { registerUser, loginUser } = require('../controllers/authController');
 const { addContact } = require('../controllers/addContact');  // Import the addContact controller
 const { searchUser } = require('../controllers/searchUser');  // Import the searchUser controller
 const authMiddleware = require('../middleware/authMiddleware');  // Import the authentication middleware
+const { fetchContact } = require('../controllers/fetchContact');
 
 const router = express.Router();
 
@@ -22,5 +23,5 @@ router.get('/search',searchUser); // Only accessible to authenticated users
 
 // Route to add a contact (protected route)
 router.post('/addContact',addContact); // Only accessible to authenticated users
-
+router.get('/fetchContact',fetchContact);
 module.exports = router;
