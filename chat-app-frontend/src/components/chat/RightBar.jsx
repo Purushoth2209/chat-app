@@ -1,43 +1,89 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Form, Button } from 'react-bootstrap';
-import axios from 'axios';
-import '../styles/chat/rightbar.css';  // Importing the RightBar CSS
+import io from 'socket.io-client';
+import '../styles/chat/rightbar.css';
 
-function RightBar({ currentContact, messages, message, setMessage, setMessages, setCurrentContact }) {
+const socket = io('http://localhost:5000');
+
+function RightBar({ currentContact, messages, setMessages, setCurrentContact }) {
+  const [message, setMessage] = useState('');
+
   const handleSendMessage = () => {
-    if (message.trim() === '') return;
-    const newMessage = { sender: 'User 1', content: message };
-    setMessages([...messages, newMessage]);
+    if (!message.trim()) return;
 
-    // Replace with actual API endpoint to send the message
-    try {
-      axios.post(`/api/messages/send`, { to: currentContact.profileId, message });
-      setMessage('');
-    } catch (error) {
-      console.error('Error sending message:', error);
+    // Retrieve the sender's profileId from localStorage
+    const senderId = localStorage.getItem('profileId'); 
+
+    // Ensure the senderId exists
+    if (!senderId) {
+      console.log('Sender profileId not found in localStorage');
+      return;
     }
+
+    // Ensure that currentContact exists and has a profileId
+    const receiverId = currentContact ? currentContact.profileId : null;
+    if (!receiverId) {
+      console.log('Receiver profileId not found.');
+      return;
+    }
+
+    const newMessage = { sender: 'User 1', content: message, senderId, receiverId };
+    console.log('Sending message:', newMessage);
+
+    setMessages((prevMessages) => [...prevMessages, newMessage]);
+
+    // Emit the message along with senderId and receiverId
+    socket.emit('sendMessage', { 
+      senderId, 
+      receiverId, 
+      content: message
+    });
+    console.log('Message sent to socket:', { senderId, receiverId, content: message });
+
+    setMessage('');
   };
 
   useEffect(() => {
-    // Reset the messages if no contact is selected
+    console.log('Current contact changed:', currentContact);
     if (!currentContact) {
+      console.log('No current contact selected. Clearing messages...');
       setMessages([]);
     }
   }, [currentContact, setMessages]);
 
-  const handleEscapeKey = (e) => {
-    if (e.key === 'Escape') {
-      setCurrentContact(null); // Revert to default view
-    }
-  };
+  useEffect(() => {
+    console.log('Setting up socket listener for "receiveMessage"...');
+    socket.on('receiveMessage', (message) => {
+      console.log('Message received from socket:', message);
+      if (currentContact && message.senderId === currentContact.profileId) {
+        console.log('Message is for the current contact, updating messages...');
+        setMessages((prevMessages) => [...prevMessages, message]);
+      }
+    });
+    return () => {
+      console.log('Removing socket listener for "receiveMessage"...');
+      socket.off('receiveMessage');
+    };
+  }, [currentContact, setMessages]);
+
+  const handleEscapeKey = useCallback(
+    (e) => {
+      if (e.key === 'Escape') {
+        console.log('Escape key pressed, deselecting current contact...');
+        setCurrentContact(null);
+      }
+    },
+    [setCurrentContact]
+  );
 
   useEffect(() => {
-    // Listen for the Escape key press
+    console.log('Adding event listener for Escape key...');
     window.addEventListener('keydown', handleEscapeKey);
     return () => {
+      console.log('Removing event listener for Escape key...');
       window.removeEventListener('keydown', handleEscapeKey);
     };
-  }, [setCurrentContact]);
+  }, [handleEscapeKey]);
 
   return (
     <div className="rightbar-container">
@@ -46,27 +92,31 @@ function RightBar({ currentContact, messages, message, setMessage, setMessages, 
           <h4 className="contact-name">{currentContact.username}</h4>
           <div className="messages-container">
             {messages.map((msg, index) => (
-              <div key={index} className={`message ${msg.sender === 'User 1' ? 'message-sent' : 'message-received'}`}>
+              <div
+                key={index}
+                className={`message ${msg.sender === 'User 1' ? 'message-sent' : 'message-received'}`}
+              >
                 <div className="message-content">{msg.content}</div>
               </div>
             ))}
           </div>
-          <div className="message-input-container">
+          <Form className="message-input-container">
             <Form.Control
-              as="textarea"
-              rows={3}
+              type="text"
+              placeholder="Type your message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Type a message"
               className="message-input"
             />
-            <Button variant="primary" className="send-btn" onClick={handleSendMessage}>
+            <Button onClick={handleSendMessage} className="send-message-btn">
               Send
             </Button>
-          </div>
+          </Form>
         </>
       ) : (
-        <p className="select-contact-msg">Select a contact to start chatting</p>
+        <div className="no-contact-selected">
+          <p className="text-muted">Select a contact to start chatting.</p>
+        </div>
       )}
     </div>
   );

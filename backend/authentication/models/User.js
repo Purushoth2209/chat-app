@@ -34,9 +34,17 @@ const userSchema = new mongoose.Schema({
       phoneNumber: {
         type: String,
         required: true
-      }
+      }   
     }
-  ]
+  ],
+  isOnline: {
+    type: Boolean,
+    default: false,
+  },
+  socketId: {
+    type: String,
+    default: null,
+  }
 });
 
 // Create User Model

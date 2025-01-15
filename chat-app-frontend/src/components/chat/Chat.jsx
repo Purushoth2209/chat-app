@@ -15,7 +15,6 @@ function Chat() {
   return (
     <Container fluid className="chat-container">
       <Row className="chat-row">
-        {/* Left Sidebar */}
         <Col xs={3} className="leftbar">
           <LeftBar 
             searchQuery={searchQuery} 
@@ -24,19 +23,14 @@ function Chat() {
             contactSearchResults={contactSearchResults} 
             setContacts={setContacts}
             setCurrentContact={setCurrentContact}
-            userId="userId" // Replace with actual user ID logic
           />
         </Col>
-
-        {/* Right Sidebar (Chat Content) */}
         <Col xs={9} className="rightbar">
           <RightBar 
             currentContact={currentContact} 
             messages={messages} 
-            message={message} 
-            setMessage={setMessage} 
-            setMessages={setMessages}
-            setCurrentContact={setCurrentContact}
+            setMessages={setMessages} 
+            setCurrentContact={setCurrentContact} 
           />
         </Col>
       </Row>

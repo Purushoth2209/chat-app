@@ -65,6 +65,7 @@ exports.loginUser = async (req, res) => {
 
         // Generate JWT token
         const token = jwt.sign({ profileId: user.profileId, phoneNumber: user.phoneNumber, username: user.username }, 'your_jwt_secret', { expiresIn: '1h' });
+
         console.log('Sending response:', { message: 'Login successful', token: token });
         res.status(200).json({ token, profileId: user.profileId, username: user.username, message: 'Login successful' });
     } catch (error) {

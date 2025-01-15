@@ -1,123 +1,128 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ListGroup, Form, Button, Modal } from 'react-bootstrap';
 import axios from 'axios';
-import '../styles/chat/leftbar.css'; // Importing custom CSS for styling
+import io from 'socket.io-client';
+import '../styles/chat/leftbar.css';
 
-function LeftBar({ searchQuery, setSearchQuery, setContactSearchResults, contactSearchResults, setContacts, setCurrentContact, profileId }) {
+const socket = io('http://localhost:5000');
+
+function LeftBar({ searchQuery, setSearchQuery, setContactSearchResults, contactSearchResults, setCurrentContact }) {
   const [newContactModal, setNewContactModal] = useState(false);
   const [newContactName, setNewContactName] = useState('');
   const [newContactNumber, setNewContactNumber] = useState('');
   const [error, setError] = useState('');
   const [contacts, setContactsState] = useState([]);
 
-  // Fetch contacts from backend
-  const fetchContacts = async () => {
+  const fetchContacts = useCallback(async () => {
+    console.log('Fetching contacts...');
     try {
-      const profileId = localStorage.getItem('profileId'); // Retrieve profileId
+      const profileId = localStorage.getItem('profileId');
       if (!profileId) {
-        console.error('profileId is not found in local storage');
+        console.error('Profile ID not found.');
         return;
       }
       const response = await axios.get(`http://localhost:5000/api/auth/fetchContact?profileId=${profileId}`);
       if (response.status === 200) {
+        console.log('Contacts fetched successfully:', response.data.contacts);
         setContactsState(response.data.contacts);
-        setContactSearchResults(response.data.contacts); // Initialize search results with fetched contacts
+        setContactSearchResults(response.data.contacts);
       }
     } catch (error) {
       console.error('Error fetching contacts:', error);
     }
-  };
+  }, [setContactSearchResults]);
 
   useEffect(() => {
-    fetchContacts(); // Fetch contacts on component mount
-  }, []);
+    console.log('Initializing component...');
+    fetchContacts();
+    socket.on('receiveMessage', (message) => console.log('Message received:', message));
+    return () => {
+      console.log('Cleaning up socket listeners...');
+      socket.off('receiveMessage');
+    };
+  }, [fetchContacts]);
 
-  // Handle search input changes
   const handleSearchChange = (e) => {
+    console.log('Search query changed:', e.target.value);
     setSearchQuery(e.target.value);
     searchContacts(e.target.value);
   };
 
-  // Filter contacts based on the search query
   const searchContacts = (query) => {
-    const filteredContacts = contacts.filter((contact) =>
-      contact.username.toLowerCase().includes(query.toLowerCase()) ||
-      contact.phoneNumber.includes(query)
+    console.log('Searching contacts with query:', query);
+    const filteredContacts = contacts.filter(
+      (contact) =>
+        contact.username.toLowerCase().includes(query.toLowerCase()) || contact.phoneNumber.includes(query)
     );
+    console.log('Filtered contacts:', filteredContacts);
     setContactSearchResults(filteredContacts);
   };
 
-  // Handle selecting a contact from the list
   const handleSelectContact = (contact) => {
+    console.log('Contact selected:', contact);
     setCurrentContact(contact);
   };
 
-  // Show the modal for creating a new contact
   const handleShowModal = () => {
+    console.log('Showing Add Contact modal...');
     setNewContactModal(true);
   };
 
-  // Close the modal and reset input fields
   const handleCloseModal = () => {
+    console.log('Closing Add Contact modal...');
     setNewContactModal(false);
     setNewContactName('');
     setNewContactNumber('');
     setError('');
   };
 
-  // Create a new contact
   const handleCreateContact = async () => {
-    const profileId = localStorage.getItem('profileId'); // Retrieve the profileId from local storage
-
+    console.log('Creating new contact...');
+    const profileId = localStorage.getItem('profileId');
     if (!profileId) {
-      console.error('profileId is not found in local storage');
-      setError('User is not logged in. Please log in to add contacts.');
+      console.error('User not logged in.');
+      setError('User not logged in.');
       return;
     }
-
     if (!newContactName || !newContactNumber) {
-      setError('Both fields are required');
+      console.error('Validation failed. Fields missing.');
+      setError('All fields are required.');
       return;
     }
-
     try {
-      const response = await axios.get(
-        `http://localhost:5000/api/auth/search?query=${newContactNumber}`
-      );
-
-      if (response.status === 200 && response.data.user) {
-        const contactProfileId = response.data.user.profileId;
-
-        const addContactResponse = await axios.post(
-          'http://localhost:5000/api/auth/addContact',
-          {
-            profileId: profileId,
-            contactName: newContactName,
-            contactProfileId: contactProfileId,
-            contactPhoneNumber: newContactNumber,
-          }
-        );
-
+      console.log('Searching user by phone number...');
+      const searchResponse = await axios.get(`http://localhost:5000/api/auth/search?query=${newContactNumber}`);
+      if (searchResponse.status === 200 && searchResponse.data.user) {
+        console.log('User found:', searchResponse.data.user);
+        const { profileId: contactProfileId } = searchResponse.data.user;
+        console.log('Adding contact...');
+        const addContactResponse = await axios.post('http://localhost:5000/api/auth/addContact', {
+          profileId,
+          contactName: newContactName,
+          contactProfileId,
+          contactPhoneNumber: newContactNumber,
+        });
         if (addContactResponse.status === 200) {
+          console.log('Contact added successfully.');
           handleCloseModal();
-          fetchContacts(); // Re-fetch the updated contact list
+          fetchContacts();
         } else {
+          console.error('Error adding contact:', addContactResponse.data.message);
           setError(addContactResponse.data.message);
         }
       } else {
-        setError('User not found');
+        console.error('User not found.');
+        setError('User not found.');
       }
     } catch (error) {
       console.error('Error creating contact:', error);
-      setError('Error occurred while adding the contact');
+      setError('An error occurred while adding the contact.');
     }
   };
 
   return (
     <div className="leftbar-container">
       <h4 className="contacts-title">Contacts</h4>
-      
-      {/* Search bar */}
       <Form.Control
         type="text"
         placeholder="Search contacts"
@@ -125,57 +130,44 @@ function LeftBar({ searchQuery, setSearchQuery, setContactSearchResults, contact
         onChange={handleSearchChange}
         className="search-bar"
       />
-
-      {/* Add new contact button */}
       <Button variant="outline-primary" onClick={handleShowModal} className="add-contact-btn mb-3">
         <i className="bi bi-plus"></i> Add Contact
       </Button>
-
-      {/* Contact list */}
-      <ListGroup className="contacts-list list-group-flush">
+      <ListGroup className="contacts-list">
         {contactSearchResults.length > 0 ? (
           contactSearchResults.map((contact) => (
-            <ListGroup.Item
-              key={contact.profileId}
-              action
-              onClick={() => handleSelectContact(contact)}
-              className="contact-item d-flex justify-content-between align-items-center py-2"
-            >
+            <ListGroup.Item key={contact.profileId} action onClick={() => handleSelectContact(contact)}>
               <div>
-                <span className="font-weight-bold">{contact.username}</span>
+                <strong>{contact.username}</strong>
                 <br />
-                <span className="text-muted small">{contact.phoneNumber}</span>
+                <small>{contact.phoneNumber}</small>
               </div>
-              <i className="bi bi-chat-dots text-primary"></i>
             </ListGroup.Item>
           ))
         ) : (
-          <p className="text-muted text-center">No results</p>
+          <p className="text-muted text-center">No results found.</p>
         )}
       </ListGroup>
-
-      {/* Modal for creating new contact */}
       <Modal show={newContactModal} onHide={handleCloseModal}>
         <Modal.Header closeButton>
-          <Modal.Title>Create New Contact</Modal.Title>
+          <Modal.Title>Add New Contact</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form>
-            <Form.Group controlId="contactName">
-              <Form.Label>Contact Name</Form.Label>
+            <Form.Group>
+              <Form.Label>Name</Form.Label>
               <Form.Control
                 type="text"
-                placeholder="Enter name"
+                placeholder="Contact name"
                 value={newContactName}
                 onChange={(e) => setNewContactName(e.target.value)}
               />
             </Form.Group>
-
-            <Form.Group controlId="contactNumber">
-              <Form.Label>Contact Number</Form.Label>
+            <Form.Group>
+              <Form.Label>Phone Number</Form.Label>
               <Form.Control
                 type="text"
-                placeholder="Enter phone number"
+                placeholder="Phone number"
                 value={newContactNumber}
                 onChange={(e) => setNewContactNumber(e.target.value)}
               />
