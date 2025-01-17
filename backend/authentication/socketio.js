@@ -1,76 +1,82 @@
-const socketIo = require('socket.io');
-const { sendMessage, updateMessageStatus } = require('./controllers/messageController');
+const { Server } = require('socket.io');
+const Message = require('./models/Message'); // Import your Message schema
 
-let onlineUsers = {}; // Track online users
+// User-to-socket mapping
+const userSockets = new Map();
+let io; // Declare io globally
 
-module.exports = function (server) {
-  const io = socketIo(server, {
+// Initialize Socket.io with the server
+const initializeSocket = (server) => {
+  io = new Server(server, {
     cors: {
-      origin: 'http://localhost:3000', // Frontend URL
-      methods: ['GET', 'POST'],       // Allowed HTTP methods
-      allowedHeaders: ['Content-Type', 'Authorization'], // Allow custom headers
-      credentials: true,              // Allow credentials like cookies or headers
+      origin: "*", // Adjust this based on your client URL
+      methods: ["GET", "POST"],
     },
   });
 
   io.on('connection', (socket) => {
-    console.log('User connected: ' + socket.id);
+    console.log(`User connected: ${socket.id}`);
 
-    // Store user's socket ID
-    socket.on('setUser', (userId) => {
-      onlineUsers[userId] = socket.id;
-      console.log(`User ${userId} is online`);
+    // Register the user's profileId with their socketId
+    socket.on('register', async (profileId) => {
+      console.log(`Registering profileId: ${profileId} with socketId: ${socket.id}`);
+      userSockets.set(profileId, socket.id);
+
+      // Fetch undelivered messages from the database
+      const undeliveredMessages = await Message.find({ receiverId: profileId }).sort({ timestamp: 1 });
+      undeliveredMessages.forEach((msg) => {
+        socket.emit('receiveMessage', msg); // Emit undelivered messages to the user
+      });
+
+      // Optionally delete delivered messages from the database
+      await Message.deleteMany({ receiverId: profileId });
     });
 
-    // Handle message sending
-    socket.on('sendMessage', async (messageData) => {
+    // Handle sending a message from one user to another
+    socket.on('sendMessage', async ({ senderId, receiverId, content }) => {
+      console.log(`Message from ${senderId} to ${receiverId}: ${content}`);
+
       try {
-        console.log('Received message data:', messageData); // Log the message data for debugging
+        // Save the message to the database first
+        const savedMessage = await Message.create({
+          senderId,
+          receiverId,
+          content,
+          timestamp: new Date(),
+        });
 
-        // Check if all required fields are present
-        if (!messageData.senderId || !messageData.receiverId || !messageData.content) {
-          console.error('Missing required fields in message data:', messageData);
-          return; // Stop processing if data is incomplete
-        }
+        console.log(`Message saved to database: ${savedMessage}`);
 
-        const { senderId, receiverId, content } = messageData;
+        // Fetch the saved message from the database
+        const fetchedMessage = await Message.findById(savedMessage._id);
 
-        // Save the message to the database
-        const message = await sendMessage(senderId, receiverId, content);
-
-        // Deliver the message if the receiver is online
-        if (onlineUsers[receiverId]) {
-          io.to(onlineUsers[receiverId]).emit('receiveMessage', message);
-          await updateMessageStatus(message._id, 'delivered');
+        const receiverSocketId = userSockets.get(receiverId);
+        if (receiverSocketId) {
+          // Deliver the message to the recipient in real-time
+          io.to(receiverSocketId).emit('receiveMessage', fetchedMessage);
         } else {
-          console.log('Receiver is offline. Message will be delivered when they come online.');
+          // Receiver is offline; message remains stored in the database for later delivery
+          console.log(`User ${receiverId} is offline. Message will be delivered later.`);
         }
       } catch (error) {
-        console.error('Error sending message:', error);
-      }
-    });
-
-    // Handle message read receipts
-    socket.on('markAsRead', async (messageId) => {
-      try {
-        await updateMessageStatus(messageId, 'read');
-      } catch (error) {
-        console.error('Error marking message as read:', error);
+        console.error('Error saving or delivering message:', error);
       }
     });
 
     // Handle user disconnection
     socket.on('disconnect', () => {
-      console.log('User disconnected: ' + socket.id);
-
-      // Remove user from online users list
-      for (const userId in onlineUsers) {
-        if (onlineUsers[userId] === socket.id) {
-          delete onlineUsers[userId];
-          console.log(`User ${userId} is offline`);
+      console.log(`User disconnected: ${socket.id}`);
+      for (let [profileId, socketId] of userSockets) {
+        if (socketId === socket.id) {
+          userSockets.delete(profileId);
+          console.log(`Removed profileId: ${profileId} association`);
           break;
         }
       }
     });
   });
+
+  return io; // Return io object after initialization
 };
+
+module.exports = { initializeSocket, userSockets, io }; // Export io and userSockets mapping

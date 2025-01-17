@@ -1,26 +1,35 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Form, Button } from 'react-bootstrap';
 import io from 'socket.io-client';
+import axios from 'axios';  // Import axios to make API requests
+import { useNavigate } from 'react-router-dom';  // Import useNavigate for redirection
 import '../styles/chat/rightbar.css';
 
 const socket = io('http://localhost:5000');
 
 function RightBar({ currentContact, messages, setMessages, setCurrentContact }) {
   const [message, setMessage] = useState('');
+  const navigate = useNavigate();  // Initialize the navigate function
+
+  // Register user profileId when component mounts
+  useEffect(() => {
+    const profileId = localStorage.getItem('profileId');
+    if (profileId) {
+      socket.emit('register', profileId);
+      console.log('User registered with socketId');
+    }
+  }, []);
 
   const handleSendMessage = () => {
     if (!message.trim()) return;
 
-    // Retrieve the sender's profileId from localStorage
     const senderId = localStorage.getItem('profileId'); 
 
-    // Ensure the senderId exists
     if (!senderId) {
       console.log('Sender profileId not found in localStorage');
       return;
     }
 
-    // Ensure that currentContact exists and has a profileId
     const receiverId = currentContact ? currentContact.profileId : null;
     if (!receiverId) {
       console.log('Receiver profileId not found.');
@@ -32,15 +41,33 @@ function RightBar({ currentContact, messages, setMessages, setCurrentContact }) 
 
     setMessages((prevMessages) => [...prevMessages, newMessage]);
 
-    // Emit the message along with senderId and receiverId
-    socket.emit('sendMessage', { 
-      senderId, 
-      receiverId, 
-      content: message
-    });
-    console.log('Message sent to socket:', { senderId, receiverId, content: message });
+    socket.emit('sendMessage', { senderId, receiverId, content: message });
 
     setMessage('');
+  };
+
+  const handleLogout = async () => {
+    const profileId = localStorage.getItem('profileId');
+    if (!profileId) {
+      console.log('ProfileId not found in localStorage');
+      return;
+    }
+
+    try {
+      const response = await axios.post('http://localhost:5000/api/auth/logout', { profileId });
+      console.log(response.data.message);  // Handle success response
+
+      localStorage.removeItem('profileId');
+      localStorage.removeItem('token');
+      console.log('Logged out successfully');
+
+      setMessages([]);
+      setCurrentContact(null);
+
+      navigate('/login');
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
   };
 
   useEffect(() => {
@@ -58,8 +85,12 @@ function RightBar({ currentContact, messages, setMessages, setCurrentContact }) 
       if (currentContact && message.senderId === currentContact.profileId) {
         console.log('Message is for the current contact, updating messages...');
         setMessages((prevMessages) => [...prevMessages, message]);
+      } else {
+        // If the message is not for the current contact, it may be stored for future reference
+        setMessages((prevMessages) => [...prevMessages, message]);
       }
     });
+
     return () => {
       console.log('Removing socket listener for "receiveMessage"...');
       socket.off('receiveMessage');
@@ -118,6 +149,14 @@ function RightBar({ currentContact, messages, setMessages, setCurrentContact }) 
           <p className="text-muted">Select a contact to start chatting.</p>
         </div>
       )}
+
+      <Button 
+        variant="danger" 
+        className="logout-btn" 
+        onClick={handleLogout}
+      >
+        Logout
+      </Button>
     </div>
   );
 }

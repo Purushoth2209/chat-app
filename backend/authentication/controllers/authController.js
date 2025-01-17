@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { userSockets, io } = require('../socketio'); // Import userSockets map and io instance
 
 // Register a new user
 exports.registerUser = async (req, res) => {
@@ -57,17 +58,66 @@ exports.loginUser = async (req, res) => {
             return res.status(400).json({ message: 'User not found' });
         }
 
-        // Compare password with hashed password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        // Generate JWT token
-        const token = jwt.sign({ profileId: user.profileId, phoneNumber: user.phoneNumber, username: user.username }, 'your_jwt_secret', { expiresIn: '1h' });
+        // Update isOnline to true
+        user.isOnline = true;
+        await user.save();
 
-        console.log('Sending response:', { message: 'Login successful', token: token });
+        const token = jwt.sign(
+            { profileId: user.profileId, phoneNumber: user.phoneNumber, username: user.username },
+            'your_jwt_secret',
+            { expiresIn: '1h' }
+        );
+
         res.status(200).json({ token, profileId: user.profileId, username: user.username, message: 'Login successful' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// Logout user and disconnect socket
+exports.logoutUser = async (req, res) => {
+    const { profileId } = req.body;
+
+    if (!profileId) {
+        return res.status(400).json({ message: 'Profile ID is required' });
+    }
+
+    try {
+        // Find user by profileId
+        const user = await User.findOne({ profileId });
+        if (!user) {
+            return res.status(400).json({ message: 'User not found' });
+        }
+
+        // Update isOnline to false
+        user.isOnline = false;
+        await user.save();
+
+        // Disconnect user's socket connection if socketId exists
+        const socketId = userSockets.get(profileId);
+        if (socketId) {
+            if (io) {  // Ensure io is defined before accessing
+                const socket = io.sockets.sockets.get(socketId);
+                if (socket) {
+                    socket.disconnect(); // Disconnect the user
+                    console.log(`Disconnected socket for profileId: ${profileId}`);
+                } else {
+                    console.error(`Socket not found for socketId: ${socketId}`);
+                }
+            } else {
+                console.error("io is not initialized.");
+            }
+
+            userSockets.delete(profileId); // Remove from userSockets map
+        }
+
+        res.status(200).json({ message: 'Logout successful and connection terminated' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });

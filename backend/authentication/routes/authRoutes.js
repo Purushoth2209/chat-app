@@ -1,5 +1,5 @@
 const express = require('express');
-const { registerUser, loginUser } = require('../controllers/authController');
+const { registerUser, loginUser,logoutUser } = require('../controllers/authController');
 const { addContact } = require('../controllers/addContact');  // Import the addContact controller
 const { searchUser } = require('../controllers/searchUser');  // Import the searchUser controller
 const authMiddleware = require('../middleware/authMiddleware');  // Import the authentication middleware
@@ -17,6 +17,7 @@ router.post('/login', loginUser);
 router.get('/protected', authMiddleware, (req, res) => {
   res.json({ msg: 'This is a protected route', user: req.user });
 });
+router.post('/logout', logoutUser);
 
 // Route to search for a user by phone number or username (protected route)
 router.get('/search',searchUser); // Only accessible to authenticated users

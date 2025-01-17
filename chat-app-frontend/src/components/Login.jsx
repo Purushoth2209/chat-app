@@ -1,10 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import io from 'socket.io-client';
 import './styles/Login.css';
 
 const Login = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
+  const [socket, setSocket] = useState(null);
+
+  useEffect(() => {
+    // Establish WebSocket connection when the component mounts
+    const socketInstance = io('http://localhost:5000');
+    setSocket(socketInstance);
+
+    return () => {
+      // Disconnect WebSocket when the component unmounts
+      if (socketInstance) socketInstance.disconnect();
+    };
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -21,10 +34,15 @@ const Login = () => {
 
       // Check if the login was successful
       if (response.status === 200) {
-        // Store the JWT token in localStorage
+        // Store the JWT token and user details in localStorage
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('profileId', response.data.profileId);
         localStorage.setItem('username', response.data.username);
+
+        // Notify the backend about the user's online status
+        if (socket) {
+          socket.emit('setUser', response.data.profileId);
+        }
 
         // Redirect to the chat app page
         window.location.href = '/chat';

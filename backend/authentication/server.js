@@ -5,7 +5,7 @@ const cors = require('cors');
 const http = require('http');
 const authRoutes = require('./routes/authRoutes');
 const messageRoutes = require('./routes/messageRoutes');
-const socketIoHandler = require('./socketio');
+const { initializeSocket } = require('./socketio'); // Properly destructure the exported `initializeSocket` function
 
 const app = express();
 const server = http.createServer(app);
@@ -23,7 +23,7 @@ app.use(bodyParser.json()); // Parse incoming JSON requests
 
 // MongoDB connection setup
 mongoose.connect('mongodb://localhost:27017/chatApp', {
-  useNewUrlParser: true,
+  useNewUrlParser: true, // These options are deprecated but safe to use for older Mongoose versions
   useUnifiedTopology: true,
 })
   .then(() => {
@@ -34,7 +34,7 @@ mongoose.connect('mongodb://localhost:27017/chatApp', {
     app.use('/api/messages', messageRoutes); // Messaging routes
 
     // Initialize Socket.io
-    socketIoHandler(server);
+    initializeSocket(server);
 
     // Start the server
     server.listen(5000, () => {
