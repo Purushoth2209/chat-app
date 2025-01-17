@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Form, Button } from 'react-bootstrap';
 import io from 'socket.io-client';
-import axios from 'axios';  // Import axios to make API requests
-import { useNavigate } from 'react-router-dom';  // Import useNavigate for redirection
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import '../styles/chat/rightbar.css';
 
 const socket = io('http://localhost:5000');
 
-function RightBar({ currentContact, messages, setMessages, setCurrentContact }) {
+function RightBar({ currentContact, setCurrentContact }) {
   const [message, setMessage] = useState('');
-  const navigate = useNavigate();  // Initialize the navigate function
+  const [messagesByContact, setMessagesByContact] = useState({}); // Object to store messages per contact
+  const navigate = useNavigate();
 
   // Register user profileId when component mounts
   useEffect(() => {
@@ -23,8 +24,7 @@ function RightBar({ currentContact, messages, setMessages, setCurrentContact }) 
   const handleSendMessage = () => {
     if (!message.trim()) return;
 
-    const senderId = localStorage.getItem('profileId'); 
-
+    const senderId = localStorage.getItem('profileId');
     if (!senderId) {
       console.log('Sender profileId not found in localStorage');
       return;
@@ -39,7 +39,11 @@ function RightBar({ currentContact, messages, setMessages, setCurrentContact }) 
     const newMessage = { sender: 'User 1', content: message, senderId, receiverId };
     console.log('Sending message:', newMessage);
 
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
+    // Update messages for the current contact
+    setMessagesByContact((prev) => ({
+      ...prev,
+      [receiverId]: [...(prev[receiverId] || []), newMessage],
+    }));
 
     socket.emit('sendMessage', { senderId, receiverId, content: message });
 
@@ -55,13 +59,13 @@ function RightBar({ currentContact, messages, setMessages, setCurrentContact }) 
 
     try {
       const response = await axios.post('http://localhost:5000/api/auth/logout', { profileId });
-      console.log(response.data.message);  // Handle success response
+      console.log(response.data.message);
 
       localStorage.removeItem('profileId');
       localStorage.removeItem('token');
       console.log('Logged out successfully');
 
-      setMessages([]);
+      setMessagesByContact({});
       setCurrentContact(null);
 
       navigate('/login');
@@ -71,31 +75,22 @@ function RightBar({ currentContact, messages, setMessages, setCurrentContact }) 
   };
 
   useEffect(() => {
-    console.log('Current contact changed:', currentContact);
-    if (!currentContact) {
-      console.log('No current contact selected. Clearing messages...');
-      setMessages([]);
-    }
-  }, [currentContact, setMessages]);
-
-  useEffect(() => {
     console.log('Setting up socket listener for "receiveMessage"...');
     socket.on('receiveMessage', (message) => {
       console.log('Message received from socket:', message);
-      if (currentContact && message.senderId === currentContact.profileId) {
-        console.log('Message is for the current contact, updating messages...');
-        setMessages((prevMessages) => [...prevMessages, message]);
-      } else {
-        // If the message is not for the current contact, it may be stored for future reference
-        setMessages((prevMessages) => [...prevMessages, message]);
-      }
+
+      const { senderId } = message;
+      setMessagesByContact((prev) => ({
+        ...prev,
+        [senderId]: [...(prev[senderId] || []), message],
+      }));
     });
 
     return () => {
       console.log('Removing socket listener for "receiveMessage"...');
       socket.off('receiveMessage');
     };
-  }, [currentContact, setMessages]);
+  }, []);
 
   const handleEscapeKey = useCallback(
     (e) => {
@@ -116,13 +111,16 @@ function RightBar({ currentContact, messages, setMessages, setCurrentContact }) 
     };
   }, [handleEscapeKey]);
 
+  // Get messages for the current contact
+  const currentMessages = currentContact ? messagesByContact[currentContact.profileId] || [] : [];
+
   return (
     <div className="rightbar-container">
       {currentContact ? (
         <>
           <h4 className="contact-name">{currentContact.username}</h4>
           <div className="messages-container">
-            {messages.map((msg, index) => (
+            {currentMessages.map((msg, index) => (
               <div
                 key={index}
                 className={`message ${msg.sender === 'User 1' ? 'message-sent' : 'message-received'}`}
