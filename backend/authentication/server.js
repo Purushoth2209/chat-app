@@ -1,3 +1,4 @@
+require('dotenv').config(); // Load environment variables from .env
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
@@ -5,35 +6,34 @@ const cors = require('cors');
 const http = require('http');
 const authRoutes = require('./routes/authRoutes');
 const messageRoutes = require('./routes/messageRoutes');
-const { initializeSocket } = require('./socketio'); // Properly destructure the exported `initializeSocket` function
+const { initializeSocket } = require('./socketio'); // Import your custom Socket.IO setup
 
 const app = express();
 const server = http.createServer(app);
 
-// Apply CORS middleware
+// Middleware to handle CORS
 app.use(cors({
   origin: 'http://localhost:3000', // Frontend URL
   methods: ['GET', 'POST'],       // Allowed HTTP methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allow custom headers
-  credentials: true,              // Allow credentials like cookies or headers
+  credentials: true,              // Allow credentials like cookies
 }));
 
-// Middleware setup
-app.use(bodyParser.json()); // Parse incoming JSON requests
+// Middleware to parse incoming JSON requests
+app.use(bodyParser.json());
 
-// MongoDB connection setup
-mongoose.connect('mongodb://localhost:27017/chatApp', {
-  useNewUrlParser: true, // These options are deprecated but safe to use for older Mongoose versions
-  useUnifiedTopology: true,
-})
+// MongoDB connection using environment variable
+const mongoURI = process.env.MONGO_URI;
+
+mongoose.connect(mongoURI)
   .then(() => {
-    console.log('Connected to MongoDB');
+    console.log('Connected to MongoDB Atlas');
 
     // Setup routes
-    app.use('/api/auth', authRoutes); // Authentication and user search routes
-    app.use('/api/messages', messageRoutes); // Messaging routes
+    app.use('/api/auth', authRoutes); // Routes for authentication and user search
+    app.use('/api/messages', messageRoutes); // Routes for messaging
 
-    // Initialize Socket.io
+    // Initialize Socket.IO for real-time functionality
     initializeSocket(server);
 
     // Start the server
@@ -42,5 +42,5 @@ mongoose.connect('mongodb://localhost:27017/chatApp', {
     });
   })
   .catch(err => {
-    console.error('Error connecting to MongoDB:', err);
+    console.error('Error connecting to MongoDB Atlas:', err);
   });

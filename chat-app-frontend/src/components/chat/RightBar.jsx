@@ -1,23 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Form, Button } from 'react-bootstrap';
 import io from 'socket.io-client';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 import '../styles/chat/rightbar.css';
+import logo from './../../Logo.png'; // Import your logo image
 
 const socket = io('http://localhost:5000');
 
 function RightBar({ currentContact, setCurrentContact }) {
   const [message, setMessage] = useState('');
-  const [messagesByContact, setMessagesByContact] = useState({}); // Object to store messages per contact
-  const navigate = useNavigate();
-
-  // Register user profileId when component mounts
+  const [messagesByContact, setMessagesByContact] = useState({});
+  
   useEffect(() => {
     const profileId = localStorage.getItem('profileId');
     if (profileId) {
       socket.emit('register', profileId);
-      console.log('User registered with socketId');
     }
   }, []);
 
@@ -25,93 +20,59 @@ function RightBar({ currentContact, setCurrentContact }) {
     if (!message.trim()) return;
 
     const senderId = localStorage.getItem('profileId');
-    if (!senderId) {
-      console.log('Sender profileId not found in localStorage');
-      return;
-    }
-
     const receiverId = currentContact ? currentContact.profileId : null;
-    if (!receiverId) {
-      console.log('Receiver profileId not found.');
-      return;
-    }
 
-    const newMessage = { sender: 'User 1', content: message, senderId, receiverId };
-    console.log('Sending message:', newMessage);
+    if (!senderId || !receiverId) return;
 
-    // Update messages for the current contact
+    const localTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const newMessage = { sender: 'User 1', content: message, senderId, receiverId, timestamp: localTime };
+
     setMessagesByContact((prev) => ({
       ...prev,
       [receiverId]: [...(prev[receiverId] || []), newMessage],
     }));
 
     socket.emit('sendMessage', { senderId, receiverId, content: message });
-
     setMessage('');
   };
 
-  const handleLogout = async () => {
-    const profileId = localStorage.getItem('profileId');
-    if (!profileId) {
-      console.log('ProfileId not found in localStorage');
-      return;
-    }
-
-    try {
-      const response = await axios.post('http://localhost:5000/api/auth/logout', { profileId });
-      console.log(response.data.message);
-
-      localStorage.removeItem('profileId');
-      localStorage.removeItem('token');
-      console.log('Logged out successfully');
-
-      setMessagesByContact({});
-      setCurrentContact(null);
-
-      navigate('/login');
-    } catch (error) {
-      console.error('Error during logout:', error);
-    }
-  };
-
   useEffect(() => {
-    console.log('Setting up socket listener for "receiveMessage"...');
     socket.on('receiveMessage', (message) => {
-      console.log('Message received from socket:', message);
 
-      const { senderId } = message;
+      const updatedMessage = { ...message, timestamp: message.timestamp };
+      const { senderId } = updatedMessage;
+
       setMessagesByContact((prev) => ({
         ...prev,
-        [senderId]: [...(prev[senderId] || []), message],
+        [senderId]: [...(prev[senderId] || []), updatedMessage],
       }));
     });
 
     return () => {
-      console.log('Removing socket listener for "receiveMessage"...');
       socket.off('receiveMessage');
     };
   }, []);
 
   const handleEscapeKey = useCallback(
     (e) => {
-      if (e.key === 'Escape') {
-        console.log('Escape key pressed, deselecting current contact...');
-        setCurrentContact(null);
-      }
+      if (e.key === 'Escape') setCurrentContact(null);
     },
     [setCurrentContact]
   );
 
   useEffect(() => {
-    console.log('Adding event listener for Escape key...');
     window.addEventListener('keydown', handleEscapeKey);
     return () => {
-      console.log('Removing event listener for Escape key...');
       window.removeEventListener('keydown', handleEscapeKey);
     };
   }, [handleEscapeKey]);
 
-  // Get messages for the current contact
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSendMessage();
+    }
+  };
+
   const currentMessages = currentContact ? messagesByContact[currentContact.profileId] || [] : [];
 
   return (
@@ -125,36 +86,33 @@ function RightBar({ currentContact, setCurrentContact }) {
                 key={index}
                 className={`message ${msg.sender === 'User 1' ? 'message-sent' : 'message-received'}`}
               >
-                <div className="message-content">{msg.content}</div>
+                <div className="message-content">
+                  {msg.content}
+                  <span className="message-time">{msg.timestamp}</span>
+                </div>
               </div>
             ))}
           </div>
-          <Form className="message-input-container">
-            <Form.Control
+          <div className="message-input-container">
+            <input
               type="text"
               placeholder="Type your message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={handleKeyPress} // Listen for the Enter key press
               className="message-input"
             />
-            <Button onClick={handleSendMessage} className="send-message-btn">
+            <button onClick={handleSendMessage} className="send-message-btn">
               Send
-            </Button>
-          </Form>
+            </button>
+          </div>
         </>
       ) : (
         <div className="no-contact-selected">
+          <img src={logo} alt="App Logo" className="rightbar-logo" />
           <p className="text-muted">Select a contact to start chatting.</p>
         </div>
       )}
-
-      <Button 
-        variant="danger" 
-        className="logout-btn" 
-        onClick={handleLogout}
-      >
-        Logout
-      </Button>
     </div>
   );
 }

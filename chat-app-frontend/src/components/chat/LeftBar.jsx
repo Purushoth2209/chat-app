@@ -1,29 +1,41 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ListGroup, Form, Button, Modal } from 'react-bootstrap';
+import { ListGroup, Form, Button, Modal, Badge } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import io from 'socket.io-client';
 import '../styles/chat/leftbar.css';
+import ContactIcon from '../../Contact.png';
+import LogoutIcon from '../../Logout.png';
 
 const socket = io('http://localhost:5000');
 
-function LeftBar({ searchQuery, setSearchQuery, setContactSearchResults, contactSearchResults, setCurrentContact }) {
+function LeftBar({
+  searchQuery,
+  setSearchQuery,
+  setContactSearchResults,
+  contactSearchResults,
+  setCurrentContact,
+  setMessagesByContact,
+}) {
   const [newContactModal, setNewContactModal] = useState(false);
+  const [logoutModal, setLogoutModal] = useState(false);
   const [newContactName, setNewContactName] = useState('');
   const [newContactNumber, setNewContactNumber] = useState('');
   const [error, setError] = useState('');
   const [contacts, setContactsState] = useState([]);
+  const navigate = useNavigate();
 
   const fetchContacts = useCallback(async () => {
-    console.log('Fetching contacts...');
     try {
       const profileId = localStorage.getItem('profileId');
       if (!profileId) {
         console.error('Profile ID not found.');
         return;
       }
-      const response = await axios.get(`http://localhost:5000/api/auth/fetchContact?profileId=${profileId}`);
+      const response = await axios.get(
+        `http://localhost:5000/api/auth/fetchContact?profileId=${profileId}`
+      );
       if (response.status === 200) {
-        console.log('Contacts fetched successfully:', response.data.contacts);
         setContactsState(response.data.contacts);
         setContactSearchResults(response.data.contacts);
       }
@@ -33,43 +45,60 @@ function LeftBar({ searchQuery, setSearchQuery, setContactSearchResults, contact
   }, [setContactSearchResults]);
 
   useEffect(() => {
-    console.log('Initializing component...');
     fetchContacts();
-    socket.on('receiveMessage', (message) => console.log('Message received:', message));
+    socket.on('receiveMessage', (message) => {
+      console.log('Message received:', message);
+
+      // Update unread message count for the sender
+      setContactsState((prevContacts) =>
+        prevContacts.map((contact) => {
+          if (contact.profileId === message.senderId) {
+            return {
+              ...contact,
+              unreadMessages: (contact.unreadMessages || 0) + 1,
+            };
+          }
+          return contact;
+        })
+      );
+    });
     return () => {
-      console.log('Cleaning up socket listeners...');
       socket.off('receiveMessage');
     };
   }, [fetchContacts]);
 
   const handleSearchChange = (e) => {
-    console.log('Search query changed:', e.target.value);
     setSearchQuery(e.target.value);
     searchContacts(e.target.value);
   };
 
   const searchContacts = (query) => {
-    console.log('Searching contacts with query:', query);
     const filteredContacts = contacts.filter(
       (contact) =>
-        contact.username.toLowerCase().includes(query.toLowerCase()) || contact.phoneNumber.includes(query)
+        contact.username.toLowerCase().includes(query.toLowerCase()) ||
+        contact.phoneNumber.includes(query)
     );
-    console.log('Filtered contacts:', filteredContacts);
     setContactSearchResults(filteredContacts);
   };
 
   const handleSelectContact = (contact) => {
-    console.log('Contact selected:', contact);
     setCurrentContact(contact);
+
+    // Reset unread messages count for the selected contact
+    setContactsState((prevContacts) =>
+      prevContacts.map((c) =>
+        c.profileId === contact.profileId
+          ? { ...c, unreadMessages: 0 }
+          : c
+      )
+    );
   };
 
   const handleShowModal = () => {
-    console.log('Showing Add Contact modal...');
     setNewContactModal(true);
   };
 
   const handleCloseModal = () => {
-    console.log('Closing Add Contact modal...');
     setNewContactModal(false);
     setNewContactName('');
     setNewContactNumber('');
@@ -77,52 +106,93 @@ function LeftBar({ searchQuery, setSearchQuery, setContactSearchResults, contact
   };
 
   const handleCreateContact = async () => {
-    console.log('Creating new contact...');
     const profileId = localStorage.getItem('profileId');
     if (!profileId) {
-      console.error('User not logged in.');
       setError('User not logged in.');
       return;
     }
     if (!newContactName || !newContactNumber) {
-      console.error('Validation failed. Fields missing.');
       setError('All fields are required.');
       return;
     }
     try {
-      console.log('Searching user by phone number...');
-      const searchResponse = await axios.get(`http://localhost:5000/api/auth/search?query=${newContactNumber}`);
+      const searchResponse = await axios.get(
+        `http://localhost:5000/api/auth/search?query=${newContactNumber}`
+      );
       if (searchResponse.status === 200 && searchResponse.data.user) {
-        console.log('User found:', searchResponse.data.user);
         const { profileId: contactProfileId } = searchResponse.data.user;
-        console.log('Adding contact...');
-        const addContactResponse = await axios.post('http://localhost:5000/api/auth/addContact', {
-          profileId,
-          contactName: newContactName,
-          contactProfileId,
-          contactPhoneNumber: newContactNumber,
-        });
+        const addContactResponse = await axios.post(
+          'http://localhost:5000/api/auth/addContact',
+          {
+            profileId,
+            contactName: newContactName,
+            contactProfileId,
+            contactPhoneNumber: newContactNumber,
+          }
+        );
         if (addContactResponse.status === 200) {
-          console.log('Contact added successfully.');
           handleCloseModal();
           fetchContacts();
         } else {
-          console.error('Error adding contact:', addContactResponse.data.message);
           setError(addContactResponse.data.message);
         }
       } else {
-        console.error('User not found.');
         setError('User not found.');
       }
     } catch (error) {
-      console.error('Error creating contact:', error);
       setError('An error occurred while adding the contact.');
     }
   };
 
+  const handleLogout = async () => {
+    const profileId = localStorage.getItem('profileId');
+    if (!profileId) return;
+
+    try {
+      await fetch('http://localhost:5000/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileId }),
+      });
+      localStorage.clear();
+      if (setMessagesByContact) setMessagesByContact({});
+      setCurrentContact(null);
+      navigate('/login');
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  };
+
+  const showLogoutModal = () => {
+    setLogoutModal(true);
+  };
+
+  const closeLogoutModal = () => {
+    setLogoutModal(false);
+  };
+
   return (
     <div className="leftbar-container">
-      <h4 className="contacts-title">Contacts</h4>
+      <div className="header d-flex justify-content-between align-items-center">
+        <div className="chats-title">
+          <h4>Chats</h4>
+        </div>
+        <div className="action-icons">
+          <img
+            src={ContactIcon}
+            alt="Add Contact"
+            onClick={handleShowModal}
+            className="icon add-contact-img"
+          />
+          <img
+            src={LogoutIcon}
+            alt="Logout"
+            onClick={showLogoutModal}
+            className="icon logout-img"
+          />
+        </div>
+      </div>
+
       <Form.Control
         type="text"
         placeholder="Search contacts"
@@ -130,24 +200,34 @@ function LeftBar({ searchQuery, setSearchQuery, setContactSearchResults, contact
         onChange={handleSearchChange}
         className="search-bar"
       />
-      <Button variant="outline-primary" onClick={handleShowModal} className="add-contact-btn mb-3">
-        <i className="bi bi-plus"></i> Add Contact
-      </Button>
+
       <ListGroup className="contacts-list">
         {contactSearchResults.length > 0 ? (
           contactSearchResults.map((contact) => (
-            <ListGroup.Item key={contact.profileId} action onClick={() => handleSelectContact(contact)}>
+            <ListGroup.Item
+              key={contact.profileId}
+              action
+              onClick={() => handleSelectContact(contact)}
+              className="d-flex justify-content-between align-items-center"
+            >
               <div>
                 <strong>{contact.username}</strong>
                 <br />
                 <small>{contact.phoneNumber}</small>
               </div>
+              {contact.unreadMessages > 0 && (
+                <Badge pill bg="danger">
+                  {contact.unreadMessages}
+                </Badge>
+              )}
             </ListGroup.Item>
           ))
         ) : (
           <p className="text-muted text-center">No results found.</p>
         )}
       </ListGroup>
+
+      {/* Add Contact Modal */}
       <Modal show={newContactModal} onHide={handleCloseModal}>
         <Modal.Header closeButton>
           <Modal.Title>Add New Contact</Modal.Title>
@@ -181,6 +261,22 @@ function LeftBar({ searchQuery, setSearchQuery, setContactSearchResults, contact
           </Button>
           <Button variant="primary" onClick={handleCreateContact}>
             Create
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Logout Confirmation Modal */}
+      <Modal show={logoutModal} onHide={closeLogoutModal}>
+        <Modal.Header closeButton>
+          <Modal.Title>Logout</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>Are you sure you want to logout?</Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={closeLogoutModal}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleLogout}>
+            Logout
           </Button>
         </Modal.Footer>
       </Modal>

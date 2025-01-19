@@ -25,7 +25,11 @@ const initializeSocket = (server) => {
       // Fetch undelivered messages from the database
       const undeliveredMessages = await Message.find({ receiverId: profileId }).sort({ timestamp: 1 });
       undeliveredMessages.forEach((msg) => {
-        socket.emit('receiveMessage', msg); // Emit undelivered messages to the user
+        const messageWithTime = {
+          ...msg.toObject(),
+          timestamp: new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        };
+        socket.emit('receiveMessage', messageWithTime); // Emit undelivered messages with formatted time
       });
 
       // Optionally delete delivered messages from the database
@@ -50,10 +54,15 @@ const initializeSocket = (server) => {
         // Fetch the saved message from the database
         const fetchedMessage = await Message.findById(savedMessage._id);
 
+        const messageWithTime = {
+          ...fetchedMessage.toObject(),
+          timestamp: new Date(fetchedMessage.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        };
+
         const receiverSocketId = userSockets.get(receiverId);
         if (receiverSocketId) {
           // Deliver the message to the recipient in real-time
-          io.to(receiverSocketId).emit('receiveMessage', fetchedMessage);
+          io.to(receiverSocketId).emit('receiveMessage', messageWithTime);
         } else {
           // Receiver is offline; message remains stored in the database for later delivery
           console.log(`User ${receiverId} is offline. Message will be delivered later.`);

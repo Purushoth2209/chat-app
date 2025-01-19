@@ -44,7 +44,8 @@ const userSchema = new mongoose.Schema({
   socketId: {
     type: String,
     default: null,
-  }
+  },
+  profileImage: { type: String, default: '' },
 });
 
 // Create User Model

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 import './styles/Login.css';
-
+import Logo from "../Logo.png"
 const Login = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
@@ -58,7 +58,10 @@ const Login = () => {
 
   return (
     <div className="login-container">
-      <h2>Login</h2>
+      <div className="logo-container">
+        <img src={Logo} alt="App Logo" className="app-logo" />
+      </div>
+      <h2 className="greeting-text">Welcome Back! Please Login to Continue</h2>
       <form onSubmit={handleLogin} className="login-form">
         <input
           type="text"

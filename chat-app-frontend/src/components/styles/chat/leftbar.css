@@ -1,4 +1,4 @@
-/* Left sidebar (contact list) */
+/* General Leftbar Styling */
 .leftbar {
     background-color: #f4f4f4;
     width: 300px;
@@ -8,7 +8,7 @@
     flex-direction: column;
 }
 
-/* Title for contacts */
+/* Title for Contacts */
 .contacts-title {
     color: #004d91;
     font-weight: bold;
@@ -16,22 +16,23 @@
     margin-bottom: 15px;
 }
 
-/* Search bar */
+/* Search Bar */
 .search-bar {
     padding: 10px;
     border-radius: 25px;
     margin-bottom: 20px;
     border: 1px solid #ccc;
     font-size: 0.9rem;
-    transition: border-color 0.3s ease;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .search-bar:focus {
     border-color: #004d91;
     outline: none;
+    box-shadow: 0 0 8px rgba(0, 77, 145, 0.4);
 }
 
-/* Contact list styling */
+/* Contact List Styling */
 .contacts-list {
     padding-left: 0;
     margin: 0;
@@ -39,7 +40,7 @@
     overflow-y: auto;
 }
 
-/* Contact item (each contact) */
+/* Contact Item (Each Contact) */
 .contact-item {
     display: flex;
     justify-content: space-between;
@@ -47,21 +48,62 @@
     cursor: pointer;
     padding: 10px;
     border-radius: 10px;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .contact-item:hover {
     background-color: #e1e1e1;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Contact info styling */
+/* Styling for Unread Messages */
+.contact-item.unread {
+    font-weight: bold;
+    background-color: #eaf4ff;
+    border-left: 4px solid #004d91;
+}
+
+/* Unread Message Badge */
+.unread-badge {
+    background-color: #004d91;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 12px;
+    display: inline-block;
+    min-width: 20px;
+    text-align: center;
+}
+
+/* Contact Info */
 .contact-info {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 10px;
     flex-grow: 1;
 }
 
+/* Contact Icon Styling */
+.action-icons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.icon {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.icon:hover {
+    transform: scale(1.1);
+    opacity: 0.8;
+}
+
+/* Add Contact Button */
 .add-btn {
     background-color: #004d91;
     color: white;
@@ -77,52 +119,20 @@
     background-color: #003366;
 }
 
+/* No Results Found */
 .no-results {
     color: #888;
     text-align: center;
+    font-style: italic;
 }
-/* Add new contact button */
+
+/* Add Contact Button Full Width */
 .add-contact-btn {
     margin-top: 20px;
     width: 100%;
     border-radius: 20px;
     display: flex;
     justify-content: center;
-}
-
-.search-bar {
-    margin-bottom: 20px;
-    border-radius: 20px;
-}
-
-.contacts-title {
-    color: #004d91;
-    font-weight: bold;
-}
-
-.contacts-list {
-    padding-left: 0;
-}
-
-.contact-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-}
-
-.contact-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.add-btn {
-    border-radius: 20px;
-}
-
-.no-results {
-    color: #888;
 }
 
 /* Modal Styling */
@@ -143,35 +153,59 @@
 .text-danger {
     color: red;
 }
+
+/* Leftbar Container */
 .leftbar-container {
     padding: 20px;
     border-right: 1px solid #ddd;
     max-height: 100vh;
     overflow-y: auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
-.contacts-title {
-    margin-bottom: 15px;
-}
-
-.search-bar {
-    margin-bottom: 15px;
-    border-radius: 8px;
-}
-
-.contacts-list {
-    max-height: 400px;
-    overflow-y: auto;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-}
-
-.contact-item {
-    cursor: pointer;
-    transition: background-color 0.2s ease;
+/* Header Styling */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     padding: 10px;
 }
 
-.contact-item:hover {
-    background-color: #f8f9fa;
+.chats-title h4 {
+    font-size: 2.0rem;
+    font-weight: bolder;
+    color: #004d91;
+}
+
+/* Updated Add Contact Logo */
+.add-contact-logo img {
+    width: 2rem !important;
+    /* Matches the title font size */
+    height: 2rem !important;
+    /* Matches the title font size */
+    cursor: pointer;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.add-contact-logo img:hover {
+    transform: scale(1.2);
+    opacity: 0.8;
+}
+
+/* Updated Logout Icon */
+.logout-img {
+    width: 2rem !important;
+    /* Matches the title font size */
+    height: 2rem !important;
+    /* Matches the title font size */
+    cursor: pointer;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.logout-img:hover {
+    transform: rotate(15deg) scale(1.1);
+    opacity: 0.8;
 }
