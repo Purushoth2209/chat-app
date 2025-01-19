@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import './styles/Signup.css';
+import Logo from "../Logo.png";
 
 const Signup = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -35,7 +36,11 @@ const Signup = () => {
 
   return (
     <div className="signup-container">
-      <h2>Signup</h2>
+      <div className="logo-container">
+        <img src={Logo} alt="App Logo" className="app-logo" />
+        <h1 className="app-title">Sparrow</h1>
+      </div>
+      <h2 className="greeting-text">Create your account</h2>
       <form onSubmit={handleSignup} className="signup-form">
         <input
           type="text"
@@ -60,6 +65,9 @@ const Signup = () => {
         />
         <button type="submit" className="signup-btn">Signup</button>
       </form>
+      <div className="login-link">
+        <a href="/login">Already have an account? Login</a>
+      </div>
     </div>
   );
 };

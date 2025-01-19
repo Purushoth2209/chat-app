@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 import './styles/Login.css';
-import Logo from "../Logo.png"
+import { useNavigate } from 'react-router-dom';  // Import React Router's navigate object
+import Logo from "../Logo.png";
+
 const Login = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [socket, setSocket] = useState(null);
+  const navigate = useNavigate();  // Use React Router's navigate function
 
   useEffect(() => {
     // Establish WebSocket connection when the component mounts
@@ -44,8 +47,9 @@ const Login = () => {
           socket.emit('setUser', response.data.profileId);
         }
 
-        // Redirect to the chat app page
-        window.location.href = '/chat';
+        // Navigate to the chat page
+        console.log("Navigating to chat...");
+        navigate('/chat');  // Use navigate() to navigate
       } else {
         alert(response.data.message);
       }
@@ -60,6 +64,7 @@ const Login = () => {
     <div className="login-container">
       <div className="logo-container">
         <img src={Logo} alt="App Logo" className="app-logo" />
+        <h1 className="app-title">Sparrow</h1>
       </div>
       <h2 className="greeting-text">Welcome Back! Please Login to Continue</h2>
       <form onSubmit={handleLogin} className="login-form">

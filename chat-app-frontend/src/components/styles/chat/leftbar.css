@@ -182,10 +182,8 @@
 
 /* Updated Add Contact Logo */
 .add-contact-logo img {
-    width: 2rem !important;
-    /* Matches the title font size */
-    height: 2rem !important;
-    /* Matches the title font size */
+    width: 2rem !important; /* Matches the title font size */
+    height: 2rem !important; /* Matches the title font size */
     cursor: pointer;
     transition: transform 0.3s ease, opacity 0.3s ease;
 }
@@ -197,10 +195,8 @@
 
 /* Updated Logout Icon */
 .logout-img {
-    width: 2rem !important;
-    /* Matches the title font size */
-    height: 2rem !important;
-    /* Matches the title font size */
+    width: 2rem !important; /* Matches the title font size */
+    height: 2rem !important; /* Matches the title font size */
     cursor: pointer;
     transition: transform 0.3s ease, opacity 0.3s ease;
 }
