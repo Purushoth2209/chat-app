@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import io from 'socket.io-client';
 import '../styles/chat/rightbar.css';
-import logo from './../../Logo.png'; // Import your logo image
+import logo from './../../Logo.png';
 
 const socket = io('http://localhost:5000');
 
@@ -38,7 +38,6 @@ function RightBar({ currentContact, setCurrentContact }) {
 
   useEffect(() => {
     socket.on('receiveMessage', (message) => {
-
       const updatedMessage = { ...message, timestamp: message.timestamp };
       const { senderId } = updatedMessage;
 
@@ -99,7 +98,7 @@ function RightBar({ currentContact, setCurrentContact }) {
               placeholder="Type your message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={handleKeyPress} // Listen for the Enter key press
+              onKeyDown={handleKeyPress}
               className="message-input"
             />
             <button onClick={handleSendMessage} className="send-message-btn">

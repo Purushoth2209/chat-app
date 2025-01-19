@@ -2,22 +2,20 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 import './styles/Login.css';
-import { useNavigate } from 'react-router-dom';  // Import React Router's navigate object
+import { useNavigate } from 'react-router-dom';
 import Logo from "../Logo.png";
 
 const Login = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [socket, setSocket] = useState(null);
-  const navigate = useNavigate();  // Use React Router's navigate function
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Establish WebSocket connection when the component mounts
     const socketInstance = io('http://localhost:5000');
     setSocket(socketInstance);
 
     return () => {
-      // Disconnect WebSocket when the component unmounts
       if (socketInstance) socketInstance.disconnect();
     };
   }, []);
@@ -26,36 +24,25 @@ const Login = () => {
     e.preventDefault();
 
     try {
-      // Sending the login request
       const response = await axios.post(
         'http://localhost:5000/api/auth/login',
         { phoneNumber, password }
       );
 
-      // Log the response data for debugging
-      console.log('Response from server:', response.data);
-
-      // Check if the login was successful
       if (response.status === 200) {
-        // Store the JWT token and user details in localStorage
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('profileId', response.data.profileId);
         localStorage.setItem('username', response.data.username);
 
-        // Notify the backend about the user's online status
         if (socket) {
           socket.emit('setUser', response.data.profileId);
         }
 
-        // Navigate to the chat page
-        console.log("Navigating to chat...");
-        navigate('/chat');  // Use navigate() to navigate
+        navigate('/chat');
       } else {
         alert(response.data.message);
       }
     } catch (error) {
-      // Log error and show a user-friendly message
-      console.error('Error during login:', error.response ? error.response.data : error);
       alert('Login failed. Please try again.');
     }
   };

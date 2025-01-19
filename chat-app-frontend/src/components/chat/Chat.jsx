@@ -1,28 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LeftBar from './LeftBar';
 import RightBar from './RightBar';
 import { Container, Row, Col } from 'react-bootstrap';
 import '../styles/chat/chat.css';
 
+function useLogout() {
+  const navigate = useNavigate();
+
+  const handleLogout = useCallback(() => {
+    // Clear token from localStorage or cookies
+    localStorage.removeItem('token');
+    navigate('/login');
+  }, [navigate]);
+
+  return handleLogout;
+}
+
 function Chat() {
   const [contacts, setContacts] = useState([]);
   const [messages, setMessages] = useState([]);
   const [currentContact, setCurrentContact] = useState(null);
-  const [message, setMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [contactSearchResults, setContactSearchResults] = useState([]);
-  
-  const navigate = useNavigate();
 
-  // Handle logout by removing JWT token from localStorage and redirecting to login page
-  const handleLogout = () => {
-    localStorage.removeItem('token');  // Remove JWT token from localStorage
-    navigate('/login');  // Redirect to login page
-  };
+  const handleLogout = useLogout();
 
-  // Clear JWT token when component unmounts (user presses back)
   useEffect(() => {
+    // Clean up token on unmount
     return () => {
       localStorage.removeItem('token');
     };
@@ -33,8 +38,8 @@ function Chat() {
       <Row className="chat-row">
         <Col xs={3} className="leftbar">
           <LeftBar 
-            searchQuery={searchQuery} 
-            setSearchQuery={setSearchQuery} 
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
             setContactSearchResults={setContactSearchResults} 
             contactSearchResults={contactSearchResults} 
             setContacts={setContacts}
